@@ -20,7 +20,7 @@
             "type": "string",
             "metadata": {
                 "Description": "The name of the Virtual Network to Create"
-            }
+            },
 			"defaultValue": "ContosoNET"
         },
         "virtualNetworkAddressRange": {
@@ -34,7 +34,7 @@
             "type": "string",
             "metadata": {
                 "Description": "The name of the subnet created in the new VNET"
-            }
+            },
             "defaultValue": "DCSubnet"
         },
         "subnetRange": {

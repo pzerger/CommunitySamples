@@ -1,0 +1,561 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "allowedValues": [ "East US", "West US", "West Europe", "East Asia", "South East Asia" ],
+            "metadata": {
+                "Description": "Deployment location"
+            }
+        },
+        "addressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16",
+            "metadata": {
+                "Description": "Address prefix"
+            }
+
+        },
+        "DCsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "Description": "DC Subnet Prefix"
+            }
+        },
+        "SCsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "Description": "SC Subnet Prefix"
+            }
+        },
+        "SQLsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/24",
+            "metadata": {
+                "Description": "SQL Subnet Prefix"
+            }
+        },
+        "contososysctrappName": {
+            "type": "string"
+        },
+        "contososysctrappType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_ZRS"
+            ]
+        },
+        "contososysctrappLocation": {
+            "type": "string",
+            "defaultValue": "West US",
+            "allowedValues": [
+                "East US",
+                "West US",
+                "West Europe",
+                "East Asia",
+                "South East Asia"
+            ]
+        },
+        "ADDCName": {
+            "type": "string",
+            "defaultValue": "ADDC"
+        },
+        "ADDCAdminUserName": {
+            "type": "string",
+            "defaultValue": "adadmin"
+        },
+        "ADDCAdminPassword": {
+            "type": "securestring",
+            "defaultValue": "P@ssw0rd1!"
+        },
+        "ADDCWindowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2012-R2-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "Windows-Server-Technical-Preview"
+            ]
+        },
+        "SYSCTR1Name": {
+            "type": "string",
+            "defaultValue": "SCSM1"
+        },
+        "SYSCTR1AdminUserName": {
+            "type": "string",
+            "defaultValue": "scadmin"
+        },
+        "SYSCTR1AdminPassword": {
+            "type": "securestring",
+            "defaultValue": "P@ssw0rd1!"
+        },
+        "SYSCTR1WindowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2012-R2-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "Windows-Server-Technical-Preview"
+            ]
+        },
+        "SQL1Name": {
+            "type": "string",
+            "defaultValue": "SQL1"
+        },
+        "SQL1AdminUserName": {
+            "type": "string",
+            "defaultValue": "sqladmin"
+        },
+        "SQL1AdminPassword": {
+            "type": "securestring",
+            "defaultValue": "P@ssw0rd1!"
+        },
+        "SQL1WindowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2012-R2-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "Windows-Server-Technical-Preview"
+            ]
+        },
+        "ciresonadpubipDnsName": {
+            "type": "string"
+        },
+        "ciresonsmpubipDnsName": {
+            "type": "string"
+        },
+        "ciresonsqlpubipDnsName": {
+            "type": "string"
+        },
+        "ADdomainNameFQDN": {
+            "type": "string",
+            "defaultValue": "contoso.corp",
+            "metadata": {
+                "description": "The FQDN of the AD Domain created "
+            }
+        },
+        "AssetLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of resources such as templates and DSC modules that the script is dependent"
+            },
+            "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/active-directory-new-domain/"
+        }
+    },
+        "variables": {
+        "adDataDisk": "ADDataDisk",
+		"adDataDiskSize": 1000,
+        "ADDCImagePublisher": "MicrosoftWindowsServer",
+        "ADDCImageOffer": "WindowsServer",
+        "ADDCOSDiskName": "ADDCOSDisk",
+        "ADDCVmSize": "Standard_D1",
+        "ADDCVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'ContosoNET')]",
+        "ADDCSubnetRef": "[concat(variables('ADDCVnetID'), '/subnets/', 'DCSubnet')]",
+        "ADDCStorageAccountContainerName": "vhds",
+        "ADDCNicName": "[concat(parameters('ADDCName'), 'NetworkInterface')]",
+        "adModulesURL": "[concat(parameters('AssetLocation'),'/CreateADPDC.ps1.zip')]",
+        "adConfigurationFunction": "CreateADPDC.ps1\\CreateADPDC",
+        "SYSCTR1ImagePublisher": "MicrosoftWindowsServer",
+        "SYSCTR1ImageOffer": "WindowsServer",
+        "SYSCTR1OSDiskName": "SYSCTR1OSDisk",
+        "SYSCTR1VmSize": "Standard_D1",
+        "SYSCTR1VnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'ContosoNET')]",
+        "SYSCTR1SubnetRef": "[concat(variables('SYSCTR1VnetID'), '/subnets/', 'SCSubnet')]",
+        "SYSCTR1StorageAccountContainerName": "vhds",
+        "SYSCTR1NicName": "[concat(parameters('SYSCTR1Name'), 'NetworkInterface')]",
+        "SQL1ImagePublisher": "MicrosoftWindowsServer",
+        "SQL1ImageOffer": "WindowsServer",
+        "SQL1OSDiskName": "SQL1OSDisk",
+        "SQL1VmSize": "Standard_D1",
+        "SQL1VnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'ContosoNET')]",
+        "SQL1SubnetRef": "[concat(variables('SQL1VnetID'), '/subnets/', 'SQLSubnet')]",
+        "SQL1StorageAccountContainerName": "vhds",
+        "SQL1NicName": "[concat(parameters('SQL1Name'), 'NetworkInterface')]",
+        "ciresonadpubipName": "ciresonadpubip",
+        "ciresonsmpubipName": "ciresonsmpubip",
+        "ciresonsqlpubipName": "ciresonsqlpubip",
+        "vnetTemplateUri": "[concat(parameters('AssetLocation'),'/vnet.json')]",
+		"vnetwithDNSTemplateUri": "[concat(parameters('AssetLocation'),'/vnet-with-dns-server.json')]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2015-05-01-preview",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "ContosoNET",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "DCSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('DCsubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "SCSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('SCsubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "SQLSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('SQLsubnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('contososysctrappName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "location": "[parameters('contososysctrappLocation')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [ ],
+            "tags": {
+                "displayName": "contososysctrapp"
+            },
+            "properties": {
+                "accountType": "[parameters('contososysctrappType')]"
+            }
+        },
+        {
+            "name": "[variables('ADDCNicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', 'ContosoNET')]",
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('ciresonadpubipName'))]"
+            ],
+            "tags": {
+                "displayName": "ADDCNic"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('ADDCSubnetRef')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ciresonadpubipName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('ADDCName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('contososysctrappName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('ADDCNicName'))]"
+            ],
+            "tags": {
+                "displayName": "ADDC"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('ADDCVmSize')]"
+                },
+                "osProfile": {
+                    "computername": "[parameters('ADDCName')]",
+                    "adminUsername": "[parameters('ADDCAdminUsername')]",
+                    "adminPassword": "[parameters('ADDCAdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('ADDCImagePublisher')]",
+                        "offer": "[variables('ADDCImageOffer')]",
+                        "sku": "[parameters('ADDCWindowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "ADDCOSDisk",
+                        "vhd": {
+                            "uri": "[concat('http://', parameters('contososysctrappName'), '.blob.core.windows.net/', variables('ADDCStorageAccountContainerName'), '/', variables('ADDCOSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "vhd": {
+                                "uri": "[concat('http://contososysctrapp.blob.core.windows.net/vhds/', variables('adDataDisk'),'-1.vhd')]"
+                            },
+                            "name": "[concat('ADDC','-data-disk1')]",
+                            "caching": "None",
+                            "createOption": "empty",
+                            "diskSizeGB": "[variables('adDataDiskSize')]",
+                            "lun": 0
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ADDCNicName'))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.Compute/virtualMachines/extensions",
+                    "name": "[concat(parameters('ADDCName'),'/CreateADForest')]",
+                    "apiVersion": "2015-05-01-preview",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', parameters('ADDCName'))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Powershell",
+                        "type": "DSC",
+                        "typeHandlerVersion": "1.7",
+                        "settings": {
+                            "ModulesUrl": "[variables('adModulesURL')]",
+                            "ConfigurationFunction": "[variables('adConfigurationFunction')]",
+                            "Properties": {
+                                "DomainName": "[parameters('ADdomainNameFQDN')]",
+                                "AdminCreds": {
+                                    "UserName": "[parameters('ADDCAdminUserName')]",
+                                    "Password": "PrivateSettingsRef:AdminPassword"
+                                }
+                            }
+                        },
+                        "protectedSettings": {
+                            "Items": {
+                                "AdminPassword": "[parameters('ADDCAdminPassword')]"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "[variables('SYSCTR1NicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', 'ContosoNET')]",
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('ciresonsmpubipName'))]"
+            ],
+            "tags": {
+                "displayName": "SYSCTR1Nic"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('SYSCTR1SubnetRef')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ciresonsmpubipName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('SYSCTR1Name')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('contososysctrappName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('SYSCTR1NicName'))]"
+            ],
+            "tags": {
+                "displayName": "SYSCTR1"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('SYSCTR1VmSize')]"
+                },
+                "osProfile": {
+                    "computername": "[parameters('SYSCTR1Name')]",
+                    "adminUsername": "[parameters('SYSCTR1AdminUsername')]",
+                    "adminPassword": "[parameters('SYSCTR1AdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('SYSCTR1ImagePublisher')]",
+                        "offer": "[variables('SYSCTR1ImageOffer')]",
+                        "sku": "[parameters('SYSCTR1WindowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "SYSCTR1OSDisk",
+                        "vhd": {
+                            "uri": "[concat('http://', parameters('contososysctrappName'), '.blob.core.windows.net/', variables('SYSCTR1StorageAccountContainerName'), '/', variables('SYSCTR1OSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('SYSCTR1NicName'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "[variables('SQL1NicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', 'ContosoNET')]",
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('ciresonsqlpubipName'))]"
+            ],
+            "tags": {
+                "displayName": "SQL1Nic"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('SQL1SubnetRef')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ciresonsqlpubipName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('SQL1Name')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('contososysctrappName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('SQL1NicName'))]"
+            ],
+            "tags": {
+                "displayName": "SQL1"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('SQL1VmSize')]"
+                },
+                "osProfile": {
+                    "computername": "[parameters('SQL1Name')]",
+                    "adminUsername": "[parameters('SQL1AdminUsername')]",
+                    "adminPassword": "[parameters('SQL1AdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('SQL1ImagePublisher')]",
+                        "offer": "[variables('SQL1ImageOffer')]",
+                        "sku": "[parameters('SQL1WindowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "SQL1OSDisk",
+                        "vhd": {
+                            "uri": "[concat('http://', parameters('contososysctrappName'), '.blob.core.windows.net/', variables('SQL1StorageAccountContainerName'), '/', variables('SQL1OSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('SQL1NicName'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "[variables('ciresonadpubipName')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [ ],
+            "tags": {
+                "displayName": "ciresonadpubip"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('ciresonadpubipDnsName')]"
+                }
+            }
+        },
+        {
+            "name": "[variables('ciresonsmpubipName')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [ ],
+            "tags": {
+                "displayName": "ciresonsmpubip"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('ciresonsmpubipDnsName')]"
+                }
+            }
+        },
+        {
+            "name": "[variables('ciresonsqlpubipName')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [ ],
+            "tags": {
+                "displayName": "ciresonsqlpubip"
+            },
+            "AssetLocation": {
+                "type": "string",
+                "metadata": {
+                    "description": "The location of resources such as templates and DSC modules that the script is dependent"
+                },
+                "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/active-directory-new-domain/"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('ciresonsqlpubipDnsName')]"
+                }
+            }
+        }
+    ]
+}

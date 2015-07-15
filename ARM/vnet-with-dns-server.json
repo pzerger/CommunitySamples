@@ -30,6 +30,27 @@
             },
             "defaultValue": "10.0.0.0/16"
         },
+                "DCsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "Description": "DC Subnet Prefix"
+            }
+        },
+        "SCsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "Description": "SC Subnet Prefix"
+            }
+        },
+        "SQLsubnetPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/24",
+            "metadata": {
+                "Description": "SQL Subnet Prefix"
+            }
+        },
         "subnetName": {
             "type": "string",
             "metadata": {
@@ -55,8 +76,9 @@
 	"resources": [
 		{
 			"name": "[parameters('virtualNetworkName')]",
-			"type": "Microsoft.Network/virtualNetworks",
-			"location": "[parameters('location')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "ContosoNET",
+            "location": "[parameters('location')]",
 			"apiVersion": "2015-05-01-preview",
 			"properties": {
 				"addressSpace": {
@@ -67,14 +89,26 @@
 				"dhcpOptions": {
 					"dnsServers": "[parameters('DNSServerAddress')]"
 				},
-				"subnets": [
-					{
-						"name": "[parameters('subnetName')]",
-						"properties": {
-							"addressPrefix": "[parameters('subnetRange')]"
-						}
-					}
-				]
+                "subnets": [
+                    {
+                        "name": "DCSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('DCsubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "SCSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('SCsubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "SQLSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('SQLsubnetPrefix')]"
+                        }
+                    }
+                ]
 			}
 		}
 	]

@@ -11,7 +11,7 @@
 </Azure>'
 
 
-
+write-eventlog -logname Application -source Loadperf -eventID 3001 -entrytype Information -message "MyApp added a user-requested feature to the display." -category 1 -rawdata 10,20
 
 #Provision domain service accounts 
 
